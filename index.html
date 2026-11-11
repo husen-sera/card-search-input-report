@@ -45,18 +45,37 @@ summary{cursor:pointer;font-weight:600}
 </head>
 <body>
 <main>
-<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026</p>
+<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026 · updated 11 November 2026</p>
 <h1>Card search: typing stops after picking a card</h1>
 <p>Why the search box stops accepting input on iPhone, whether it can be improved, and how to test it.</p>
 
-<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. No fix option was tested for this report; the option results come from the August work.</div>
+<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. On 11 November one fix option (option 1) was tried on a real iPhone using a local test build that was never released. See <a href="#nov11">11 November: real iPhone results</a>.</div>
 
 <div class="answers">
-  <div class="answer"><b class="q">Why does input stop?</b><p><span class="tag good">Confirmed</span> After a card is picked, the box still looks active, but the iPhone keyboard is no longer connected to it. Keys are pressed and nothing arrives. We reproduced this in Apple's iOS simulator, on the same kind of screen the client recorded.</p></div>
+  <div class="answer"><b class="q">Why does input stop?</b><p><span class="tag good">Confirmed</span> After a card is picked, the box still looks active, but the iPhone keyboard is no longer connected to it. Keys are pressed and nothing arrives. We reproduced this in Apple's iOS simulator and, on 11 November, on a real iPhone 13. QA also reproduced it on production the same day.</p></div>
   <div class="answer"><b class="q">Is it related to the earlier fixes?</b><p><span class="tag good">Confirmed</span> Yes. It is the same problem. The earlier fix is a workaround that runs after each pick, and it does not reliably restore the connection. This weakness was already known in August.</p></div>
-  <div class="answer"><b class="q">Why does it feel worse?</b><p><span class="tag mid">Not proven</span> We found possible reasons but cannot prove any of them yet. The card search code has barely changed since August. Device testing is needed (see <a href="#test">How to test</a>).</p></div>
-  <div class="answer"><b class="q">Can it be improved?</b><p><span class="tag mid">Partly</span> The freeze has been stopped twice before, but each time the client rejected the side effect. One option has no recorded result and is worth a short test. If it fails, this becomes a choice between trade-offs, not a technical fix.</p></div>
+  <div class="answer"><b class="q">Why does it feel worse?</b><p><span class="tag mid">Partly explained</span> Production now runs the iPhone version of the search box (confirmed 11 November). It freezes within the first one or two picks in most of our tries. The card search code itself has barely changed since August.</p></div>
+  <div class="answer"><b class="q">Can it be improved?</b><p><span class="tag badge">Only with a trade-off</span> The last untested option failed on a real iPhone on 11 November. The only two approaches that ever stopped the freeze are the ones the client rejected earlier. This is now a choice between trade-offs, not a technical fix.</p></div>
 </div>
+
+<h2 id="nov11">11 November: real iPhone results</h2>
+<p>iPhone 13, iOS 27, Safari, Japanese Kana keyboard. Same steps as the client's recording: type one kana, tap a card, repeat. The page ran the same search box version as production, on a local copy of the site.</p>
+<div class="scroll"><table>
+<tr><th>Who</th><th>Search box behaviour</th><th>Where typing stopped</th></tr>
+<tr><td>QA, production</td><td>Current</td><td><span class="tag badge">Stopped</span> On the 1st or 2nd pick, every try</td></tr>
+<tr><td>Developer, local</td><td>Current</td><td><span class="tag badge">Stopped</span> After pick 1</td></tr>
+<tr><td>Developer, local</td><td>Current</td><td><span class="tag badge">Stopped</span> After pick 8 (picks 1 to 7 worked)</td></tr>
+<tr><td>Developer, local</td><td>Current</td><td><span class="tag badge">Stopped</span> After pick 2</td></tr>
+<tr><td>Developer, local</td><td>Option 1: a new input box on each pick</td><td><span class="tag badge">Stopped</span> After pick 1. Repeated tries also stopped by the second word typed</td></tr>
+</table></div>
+<p><strong>What this tells us</strong></p>
+<ul>
+<li><strong>The freeze is real on current iPhones and on production.</strong> It is not only a simulator effect, and it can happen as early as the first card.</li>
+<li><strong>When it stops is random.</strong> The same phone and steps stopped after pick 1, 2 or 8. This fits the client's "about 3 cards" and the older "5th card" reports.</li>
+<li><strong>Option 1 does not help.</strong> It removed every part of the current workaround (the hidden box and the delayed return) and gave iOS a brand-new box, inside the same tap. Typing still stopped. So the cause is not how or when our code returns the cursor to the box.</li>
+<li><strong>What remains is the half-typed Japanese word.</strong> The freeze follows clearing the box while iOS is still holding an unconfirmed word. Every approach that removes that word from code has failed. The two approaches that stopped the freeze (options 2 and 3) both let iOS finish the word first, by closing the keyboard or by keeping the word.</li>
+<li>Numbers typed on a non-Japanese keyboard skip this path. On the Japanese keyboard even digits can start an unconfirmed word, so number entry may still freeze. Numbers were not retested on 11 November.</li>
+</ul>
 
 <h2>What the client's recording shows</h2>
 <p>The recording is 18 seconds long, on an iPhone, version v1.9.0. The user types <code>か</code> and taps a card, over and over.</p>
@@ -87,9 +106,9 @@ summary{cursor:pointer;font-weight:600}
 </div>
 </div>
 
-<h3>Limits of this test</h3>
+<h3>Limits of this test (6 November)</h3>
 <ul>
-<li><strong>The search box version running on iPhone was not measured.</strong> These runs used <code>CardSelectLegacy</code>. Production very likely uses <code>CardSelectIOS</code> (see the technical notes). All three runs on that version failed because our test tool could not complete a pick, so they say nothing about the product. Both versions share the same workaround.</li>
+<li><strong>The search box version running on iPhone was not measured.</strong> <em>Resolved 11 November: measured on a real iPhone (see above).</em> These runs used <code>CardSelectLegacy</code>. Production very likely uses <code>CardSelectIOS</code> (see the technical notes). All three runs on that version failed because our test tool could not complete a pick, so they say nothing about the product. Both versions share the same workaround.</li>
 <li><strong>The pattern differs.</strong> The simulator stopped on pick 1. The client's phone stopped on picks 3 and 5. So we reproduced the failure, but not when it happens.</li>
 <li>Results come from one iOS 27 simulator and three runs. They do not give a real-world failure rate.</li>
 </ul>
@@ -99,33 +118,40 @@ summary{cursor:pointer;font-weight:600}
 <li>Japanese text is unconfirmed while it is being typed. iOS keeps a private connection between the keyboard and the box during that time.</li>
 <li>Picking a card clears the box while that connection is still open.</li>
 <li>To recover, our code moves the cursor to a hidden box and back. This keeps the keyboard open, which the client asked for in July.</li>
-<li>That usually works. When it doesn't, the page has no way of knowing: the box looks fine, and the keyboard is up but feeding nothing.</li>
-<li>A real finger tap rebuilds the connection. Code cannot do this by refocusing a box that already has focus.</li>
+<li>That sometimes works. When it doesn't, the page has no way of knowing: the box looks fine, and the keyboard is up but feeding nothing.</li>
+<li>A real finger tap on the box rebuilds the connection. Code cannot: on 11 November even giving iOS a brand-new box inside the tap did not rebuild it.</li>
 </ol>
 
 <h2>Why it may feel worse</h2>
-<p>None of these is proven.</p>
+<p>None of these is proven as the cause. The first is now confirmed as a fact.</p>
 <div class="scroll"><table>
 <tr><th>Possible reason</th><th>Evidence</th><th>Status</th></tr>
-<tr><td>A different search box version now runs on production</td><td>Release settings imply production moved to the iOS version after August. On 11 August the client said that version, on beta, seemed worse than production at the time. QA also saw it fail more often on beta than on staging. Both versions carry the same workaround.</td><td><span class="tag mid">Strongest lead, unconfirmed</span></td></tr>
+<tr><td>A different search box version now runs on production</td><td>Confirmed on 11 November: production runs the iOS version. On 11 August the client said that version, on beta, seemed worse than production at the time. QA also saw it fail more often on beta than on staging. Both versions carry the same workaround.</td><td><span class="tag mid">Strongest lead. Version confirmed, effect not proven</span></td></tr>
 <tr><td>The moment the box moves down</td><td>On the client's recording, input stopped on the two picks that added a chip row. This would explain "about 3 cards" and the older "5th card" report. In the simulator, later new rows worked, so this is not the full explanation.</td><td><span class="tag mid">Open</span></td></tr>
 <tr><td>A newer iPhone or iOS version</td><td>The problem depends on iOS behaviour. The client's iOS version is unknown.</td><td><span class="tag mid">Unknown</span></td></tr>
-<tr><td>A heavier page on each pick</td><td>Not measured on the live site. It is also not required: the failure happened on our lightweight test page.</td><td><span class="tag mid">Open</span></td></tr>
+<tr><td>A heavier page on each pick</td><td>On the real iPhone the page sometimes took up to 0.3 seconds to react after a pick. This was not linked to the freeze: working and frozen picks looked the same.</td><td><span class="tag mid">Open</span></td></tr>
 <tr><td>Changes to the search box itself</td><td>Since 11 August, the only changes to it were usage logging.</td><td><span class="tag good">Unlikely</span></td></tr>
 </table></div>
 
 <h2>Options</h2>
-<p>Results below come from the June to August work on real iPhones. Nothing here was retested for this report.</p>
+<p>Results below come from the June to August work on real iPhones. Option 1 was tested on 11 November.</p>
 <div class="scroll"><table>
 <tr><th></th><th>Option</th><th>Result so far</th><th>Cost for the user</th><th>Size</th></tr>
-<tr><td class="n"><strong>1</strong></td><td><strong>Swap in a new input box on each pick,</strong> so iOS builds a fresh connection</td><td><span class="tag mid">No recorded result</span> Prepared in August, then parked when the client asked to go back</td><td>Possible brief flicker</td><td>Small</td></tr>
+<tr><td class="n"><strong>1</strong></td><td><strong>Swap in a new input box on each pick,</strong> so iOS builds a fresh connection</td><td><span class="tag badge">Failed on iPhone</span> Tested 11 November on an iPhone 13. Typing still stopped after the first pick</td><td>Not applicable</td><td>Not applicable</td></tr>
 <tr><td class="n">2</td><td>Close the keyboard after each pick</td><td><span class="tag good">Stopped the freeze</span> Client rejected it on 1 July</td><td>Reopen the keyboard for every card</td><td>Small</td></tr>
 <tr><td class="n">3</td><td>Don't clear half-typed text until the word is confirmed</td><td><span class="tag good">Stopped the freeze</span> Client rejected it on 5 August</td><td>The typed text stays in the box after a pick</td><td>Small to medium</td></tr>
 <tr><td class="n">4</td><td>Clear the text or reload the keyboard from code, without moving the cursor</td><td><span class="tag badge">Failed on iPhone</span> Several versions tried on 5 August. Old text came back or doubled</td><td>Not applicable</td><td>Not applicable</td></tr>
 <tr><td class="n">5</td><td>Replace the search box library with a plain box</td><td><span class="tag badge">Failed on iPhone</span> Still froze in August</td><td>Not applicable</td><td>Not applicable</td></tr>
 <tr><td class="n">6</td><td>Build our own on-screen keyboard</td><td><span class="tag mid">Not started</span> Assessment ticket is blocked</td><td>Different typing experience</td><td>Large</td></tr>
 </table></div>
-<p><strong>Recommended next step:</strong> test option 1 in the simulator, including the iOS search box version, then on a real iPhone. If it fails, the remaining paths are all trade-offs: accept the current behaviour, or ask the client to reconsider option 2 or 3, or choose option 6. The earlier rejections were made before the client reported this as getting worse, so they may be worth asking about again.</p>
+<p><strong>Recommended next step:</strong> a decision by the client. No remaining technical option keeps both the keyboard open and the box empty after a Japanese pick. The choices are:</p>
+<ul>
+<li>accept the current behaviour (tap the box again when typing stops), or</li>
+<li>option 2: the keyboard closes after each pick, or</li>
+<li>option 3: the half-typed word stays in the box after a pick, or</li>
+<li>option 6: a custom keyboard, a large piece of work.</li>
+</ul>
+<p>Options 2 and 3 were rejected before the client reported this as getting worse, and before it was known to happen on the first card. They may be worth asking about again.</p>
 
 <h2 id="test">How to test</h2>
 <h3>Before you start</h3>
@@ -161,7 +187,7 @@ summary{cursor:pointer;font-weight:600}
 <h2>Technical notes</h2>
 <details>
 <summary>Production version check</summary>
-<p><code>CardSelect.jsx</code> picks <code>CardSelectIOS</code> when <code>VITE_TICKET_SERA_86EY1MHAD</code> is on and the device is iOS. A code comment says production stays off. However, the flag is <code>true</code> on beta and is not in the <code>_parity.yml</code> allow-list, and full production releases have passed that gate, so production should match. This is inferred, because production was not read directly. A developer should confirm it, then correct the comment in <code>featureFlags.js</code> if needed.</p>
+<p><code>CardSelect.jsx</code> picks <code>CardSelectIOS</code> when <code>VITE_TICKET_SERA_86EY1MHAD</code> is on and the device is iOS. <strong>Confirmed 11 November:</strong> the public production bundle has the flag set to <code>true</code> and compiles the iOS branch, as do beta and staging. The comments in <code>featureFlags.js</code> and <code>.env.example</code> that call it staging-only are out of date.</p>
 </details>
 <details>
 <summary>Event trace for one frozen pick</summary>
@@ -172,6 +198,26 @@ focusout     hidden box      (next frame, 25–33 ms)
 focusin      search box      activeElement = search box
 key × 3      no beforeinput, compositionstart or input on any element</code></pre>
 <p>Dead and working picks had overlapping refocus delays (25–33 ms and 25–60 ms), so delay alone does not explain the failure.</p>
+</details>
+<details>
+<summary>11 November device traces (iPhone 13, iOS 27)</summary>
+<p>Recorded with document-level capture listeners from the Safari Web Inspector console. Times in ms after the tap.</p>
+<pre><code>Current behaviour, frozen pick
+click              option 01
+focusout / focusin search box → hidden box     (+10 to +290 ms)
+focusout / focusin hidden box → search box     (next frame)
+then               no beforeinput, compositionstart or input on any element
+
+Option 1 (new input node, focused inside the tap), frozen pick
+click              option 01
+focusin            NEW search box               (+58 ms, same tap)
+then               no beforeinput, compositionstart or input on any element</code></pre>
+<ul>
+<li>Working and frozen picks of the current behaviour produce identical traces, so nothing visible to the page distinguishes them.</li>
+<li><code>compositionend</code> never fires, in working or frozen picks. The code comment in <code>CardSelectIOS.jsx</code> that relies on WebKit firing it before blur does not hold on iOS 27.</li>
+<li>The keystrokes do not go to the hidden box either: its value stays empty and it receives no events.</li>
+<li>The option 1 build was a local branch, switchable per page load. It was not pushed or deployed.</li>
+</ul>
 </details>
 <details>
 <summary>History of the earlier fixes</summary>
@@ -189,6 +235,8 @@ key × 3      no beforeinput, compositionstart or input on any element</code></p
 <tr><td class="n">11 Aug</td><td>iOS version restored behind a flag (#1160), without #1139</td><td>Hidden box workaround kept</td></tr>
 <tr><td class="n">12 Aug</td><td>Client feedback on production</td><td>"Better than before"</td></tr>
 <tr><td class="n">26 Oct</td><td>Client recording for this ticket</td><td>Input stops after about 3 cards</td></tr>
+<tr><td class="n">11 Nov</td><td>QA on production, iPhone 13</td><td>Input stops on the 1st or 2nd pick</td></tr>
+<tr><td class="n">11 Nov</td><td>Option 1 (new input box per pick) on iPhone 13, local build only</td><td>Failed: input stops after pick 1</td></tr>
 </table></div>
 </details>
 <details>
