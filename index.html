@@ -45,11 +45,11 @@ summary{cursor:pointer;font-weight:600}
 </head>
 <body>
 <main>
-<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026 · updated 11 November 2026</p>
+<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026 · updated 12 November 2026</p>
 <h1>Card search: typing stops after picking a card</h1>
 <p>Why the search box stops accepting input on iPhone, whether it can be improved, and how to test it.</p>
 
-<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. On 11 November one fix option (option 1) was tried on a real iPhone using a local test build that was never released. See <a href="#nov11">11 November: real iPhone results</a>.</div>
+<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. On 11 November one fix option (option 1) was tried on a real iPhone using a local test build that was never released. See <a href="#nov11">11 November: real iPhone results</a>. On 12 November we checked whether the recent iOS update is to blame: <a href="#nov12">English</a> · <a href="#nov12-ja">日本語</a>.</div>
 
 <div class="answers">
   <div class="answer"><b class="q">Why does input stop?</b><p><span class="tag good">Confirmed</span> After a card is picked, the box still looks active, but the iPhone keyboard is no longer connected to it. Keys are pressed and nothing arrives. We reproduced this in Apple's iOS simulator and, on 11 November, on a real iPhone 13. QA also reproduced it on production the same day.</p></div>
@@ -57,6 +57,106 @@ summary{cursor:pointer;font-weight:600}
   <div class="answer"><b class="q">Why does it feel worse?</b><p><span class="tag mid">Partly explained</span> Production now runs the iPhone version of the search box (confirmed 11 November). It freezes within the first one or two picks in most of our tries. The card search code itself has barely changed since August.</p></div>
   <div class="answer"><b class="q">Can it be improved?</b><p><span class="tag badge">Only with a trade-off</span> The last untested option failed on a real iPhone on 11 November. The only two approaches that ever stopped the freeze are the ones the client rejected earlier. This is now a choice between trade-offs, not a technical fix.</p></div>
 </div>
+
+<h2 id="nov12">12 November: is the iOS update to blame, and is it really more frequent?</h2>
+<p class="meta">English · <a href="#nov12-ja">日本語はこちら</a></p>
+<div class="answers">
+  <div class="answer"><b class="q">1. Is the recent iOS update related?</b><p><span class="tag good">Not the cause</span> The freeze already happened in July and August, on iOS 26, and we reproduced it on iOS 27.0. On production, people on the newest version (iOS 27.2, released 26 October) show no more signs of trouble than people on older versions. They show slightly fewer. We found no evidence that the update made it worse.</p></div>
+  <div class="answer"><b class="q">2. Has it actually become more frequent?</b><p><span class="tag mid">No measurable increase</span> We cannot count freezes directly, because nothing records them yet. Every indirect measure we have is flat. The share of searches typed in Japanese has not changed, and iPhone users show the same pattern as Android and PC users, who cannot have this freeze. The likely reason it feels worse: it can now happen on the very first or second card, and when it happens is random.</p></div>
+</div>
+
+<h3>What we checked</h3>
+<ul>
+<li><strong>Release dates.</strong> iOS 27.0 came out on 14 September, 27.0.1 on 28 September, 27.1 on 22 October (one new iPhone model only) and 27.2 on 26 October, the same day as the client's recording. Other websites have reported Japanese-typing problems in Safari on iOS 27, but none matches this freeze exactly.</li>
+<li><strong>Our own changes.</strong> The card search on production has not changed since 30 September. No release of ours lines up with the time it started to feel worse.</li>
+<li><strong>Production usage, 29 October to 12 November.</strong> About 258,000 card picks: 173,000 from iPhone, linked to the iOS version the phone reported, and 85,000 from Android and PC. Server logs are kept for about 14 days, so earlier weeks cannot be split by device.</li>
+</ul>
+
+<h3>Who is on which iOS (share of iPhone picks)</h3>
+<div class="scroll"><table>
+<tr><th>Days</th><th>iOS 27.2</th><th>iOS 27.0 / 27.1</th><th>iOS 26</th><th>iOS 18 or older</th></tr>
+<tr><td class="n">29 Oct – 5 Nov</td><td>7–9%</td><td>19–24%</td><td>53–59%</td><td>10–13%</td></tr>
+<tr><td class="n">10 – 12 Nov</td><td>21–24%</td><td>17%</td><td>47–49%</td><td>8–13%</td></tr>
+</table></div>
+<p>iOS 27.2 is spreading quickly: about one in four iPhone picks today, up from one in twelve two weeks ago.</p>
+
+<h3>Signs of trouble by iOS version</h3>
+<p>When typing stops, the user has to close the keyboard, tap the box and type again, so the next card takes longer to pick. We therefore looked at how often a Japanese-typed pick that follows another Japanese-typed pick takes 20 seconds or more. As a baseline we used the same figure for number-typed picks, where this freeze is far less likely.</p>
+<div class="scroll"><table>
+<tr><th>Device</th><th>Slow, Japanese after Japanese</th><th>Slow, number after number</th><th>Difference</th><th>Japanese picks measured</th></tr>
+<tr><td>iPhone, iOS 27.2</td><td>28.5%</td><td>23.0%</td><td><strong>+5.5</strong></td><td class="n">2,518</td></tr>
+<tr><td>iPhone, iOS 27.0 / 27.1</td><td>31.9%</td><td>23.3%</td><td>+8.6</td><td class="n">5,250</td></tr>
+<tr><td>iPhone, iOS 26</td><td>29.7%</td><td>21.8%</td><td>+7.9</td><td class="n">11,963</td></tr>
+<tr><td>iPhone, iOS 18 or older</td><td>32.1%</td><td>25.2%</td><td>+6.9</td><td class="n">2,156</td></tr>
+<tr><td>Android and PC (no freeze)</td><td>30.2%</td><td>22.5%</td><td>+7.7</td><td class="n">8,639</td></tr>
+</table></div>
+<ul>
+<li><strong>iOS 27.2 is not worse.</strong> It has the smallest difference of any group. The gap to iOS 27.0 is larger than chance would explain with these numbers.</li>
+<li><strong>Japanese typing is slower on every device,</strong> including Android and PC, by about the same amount. So this measure mostly shows that kana takes longer to type than numbers. The freeze is not frequent enough to stand out in it.</li>
+<li><strong>Over time.</strong> Across all devices, the Japanese share of picks stayed at 21–23% every week since 28 September. A small slowdown of Japanese picks after about 22 October (about 5%) appears on all devices together, so it does not point to iPhone.</li>
+</ul>
+
+<h3>How sure we are</h3>
+<ul>
+<li><span class="tag good">High</span> The iOS update did not create the freeze: it existed on iOS 26.</li>
+<li><span class="tag good">Fairly high</span> iOS 27.2 users, as a group, are not doing worse than users on older iOS.</li>
+<li><span class="tag mid">Limited</span> "Not more frequent" rests on indirect measures that cannot see each freeze. A rise among a small group, such as one iPhone model, would not show up. The client's own iPhone model and iOS version are still unknown.</li>
+</ul>
+
+<h3>Recommendation</h3>
+<p>To answer "how often" with real numbers, add a small measurement that records each time typing stops after a pick, with the iOS version. It is prepared but has not been released. With approval, a week of production data would give the actual freeze rate per iOS version and show whether a future iOS update changes it. The fix options in the sections below are unchanged.</p>
+<p class="meta">Not done today: a side-by-side test of iOS 26 and iOS 27 in Apple's simulator. The production data above answers the question more directly.</p>
+
+<section lang="ja">
+<h2 id="nov12-ja">11月12日：iOSアップデートとの関係、本当に頻度が増えたのか</h2>
+<p class="meta">日本語 · <a href="#nov12">English</a></p>
+<div class="answers">
+  <div class="answer"><b class="q">1. 最近のiOSアップデートと関係がありますか？</b><p><span class="tag good">原因ではありません</span> この現象は7月・8月の時点（iOS 26）ですでに発生しており、iOS 27.0でも再現しています。本番環境のデータでは、最新のiOS 27.2（10月26日公開）を使っている方に、古いバージョンより問題の兆候が多いということはなく、むしろわずかに少ない結果でした。アップデートで悪化したという根拠は見つかりませんでした。</p></div>
+  <div class="answer"><b class="q">2. 実際に頻度は増えていますか？</b><p><span class="tag mid">測定できる増加はありません</span> 現時点ではフリーズそのものを記録する仕組みがないため、直接数えることはできません。間接的な指標はすべて横ばいです。日本語で入力される検索の割合は変わっておらず、iPhoneの傾向は、このフリーズが起きないAndroidやPCと同じでした。悪化したと感じられる理由としては、1枚目・2枚目の選択でも起きることがあり、いつ起きるかが不規則であることが考えられます。</p></div>
+</div>
+
+<h3>確認したこと</h3>
+<ul>
+<li><strong>公開日。</strong> iOS 27.0は9月14日、27.0.1は9月28日、27.1は10月22日（新しい1機種のみ）、27.2は10月26日に公開されました。27.2の公開日はクライアントの録画と同じ日です。iOS 27のSafariで日本語入力の不具合が他のサイトからも報告されていますが、今回の現象と完全に一致するものはありませんでした。</li>
+<li><strong>当社側の変更。</strong> 本番のカード検索は9月30日以降変更していません。悪化を感じ始めた時期と重なるリリースはありません。</li>
+<li><strong>本番の利用データ（10月29日〜11月12日）。</strong> カード選択 約258,000件。そのうちiPhoneが173,000件で、端末が送るiOSバージョンと照合しました。AndroidとPCは85,000件です。サーバーのログは約14日間しか保存されないため、それより前の期間は端末別に分けられません。</li>
+</ul>
+
+<h3>iOSバージョンの内訳（iPhoneのカード選択に占める割合）</h3>
+<div class="scroll"><table>
+<tr><th>期間</th><th>iOS 27.2</th><th>iOS 27.0 / 27.1</th><th>iOS 26</th><th>iOS 18以前</th></tr>
+<tr><td class="n">10/29 – 11/5</td><td>7–9%</td><td>19–24%</td><td>53–59%</td><td>10–13%</td></tr>
+<tr><td class="n">11/10 – 11/12</td><td>21–24%</td><td>17%</td><td>47–49%</td><td>8–13%</td></tr>
+</table></div>
+<p>iOS 27.2は急速に広がっており、2週間前は約12件に1件でしたが、現在は約4件に1件です。</p>
+
+<h3>iOSバージョン別の問題の兆候</h3>
+<p>入力が止まると、キーボードを閉じて検索欄をタップし直す必要があるため、次のカードを選ぶまでに時間がかかります。そこで「日本語入力の選択に続く日本語入力の選択」で20秒以上かかった割合を比較しました。基準として、このフリーズが起きにくい数字入力同士の割合も並べています。</p>
+<div class="scroll"><table>
+<tr><th>端末</th><th>20秒以上（日本語→日本語）</th><th>20秒以上（数字→数字）</th><th>差</th><th>対象の日本語選択数</th></tr>
+<tr><td>iPhone iOS 27.2</td><td>28.5%</td><td>23.0%</td><td><strong>+5.5</strong></td><td class="n">2,518</td></tr>
+<tr><td>iPhone iOS 27.0 / 27.1</td><td>31.9%</td><td>23.3%</td><td>+8.6</td><td class="n">5,250</td></tr>
+<tr><td>iPhone iOS 26</td><td>29.7%</td><td>21.8%</td><td>+7.9</td><td class="n">11,963</td></tr>
+<tr><td>iPhone iOS 18以前</td><td>32.1%</td><td>25.2%</td><td>+6.9</td><td class="n">2,156</td></tr>
+<tr><td>Android・PC（フリーズなし）</td><td>30.2%</td><td>22.5%</td><td>+7.7</td><td class="n">8,639</td></tr>
+</table></div>
+<ul>
+<li><strong>iOS 27.2が悪いわけではありません。</strong> 差が最も小さいグループです。iOS 27.0との差は、この件数では偶然とは言えない大きさです。</li>
+<li><strong>日本語入力はどの端末でも遅くなります。</strong> AndroidやPCでもほぼ同じ差があります。つまりこの指標が主に示しているのは「かなは数字より入力に時間がかかる」ことで、フリーズはこの中で目立つほどの頻度ではありません。</li>
+<li><strong>時期による変化。</strong> 全端末で見ると、日本語入力の割合は9月28日以降毎週21〜23%で一定です。10月22日頃から日本語入力の選択がわずかに（約5%）遅くなっていますが、これは全端末まとめての数字で、iPhoneに限った変化とは言えません。</li>
+</ul>
+
+<h3>確度</h3>
+<ul>
+<li><span class="tag good">高い</span> iOSアップデートがフリーズを生んだわけではない（iOS 26で既に発生）。</li>
+<li><span class="tag good">比較的高い</span> iOS 27.2の利用者全体が、古いiOSより悪い結果になってはいない。</li>
+<li><span class="tag mid">限定的</span> 「頻度は増えていない」は、一つ一つのフリーズを捉えられない間接的な指標に基づいています。特定の機種など一部の利用者だけで増えている場合は、この方法では分かりません。クライアントのiPhone機種とiOSバージョンもまだ不明です。</li>
+</ul>
+
+<h3>提案</h3>
+<p>「どのくらいの頻度か」を実数で答えるには、カード選択後に入力が止まった回数をiOSバージョンと一緒に記録する、小さな計測の追加をおすすめします。準備はできていますが、まだ公開していません。ご承認いただければ、本番で1週間ほど計測するだけで、iOSバージョン別の実際の発生率が分かり、今後のiOSアップデートで変化したかどうかも確認できます。下記の改善案の内容に変更はありません。</p>
+<p class="meta">本日実施しなかったこと：AppleのシミュレーターでのiOS 26とiOS 27の比較テスト。上記の本番データの方が、ご質問に直接お答えできるためです。</p>
+</section>
 
 <h2 id="nov11">11 November: real iPhone results</h2>
 <p>iPhone 13, iOS 27, Safari, Japanese Kana keyboard. Same steps as the client's recording: type one kana, tap a card, repeat. The page ran the same search box version as production, on a local copy of the site.</p>
@@ -128,7 +228,7 @@ summary{cursor:pointer;font-weight:600}
 <tr><th>Possible reason</th><th>Evidence</th><th>Status</th></tr>
 <tr><td>A different search box version now runs on production</td><td>Confirmed on 11 November: production runs the iOS version. On 11 August the client said that version, on beta, seemed worse than production at the time. QA also saw it fail more often on beta than on staging. Both versions carry the same workaround.</td><td><span class="tag mid">Strongest lead. Version confirmed, effect not proven</span></td></tr>
 <tr><td>The moment the box moves down</td><td>On the client's recording, input stopped on the two picks that added a chip row. This would explain "about 3 cards" and the older "5th card" report. In the simulator, later new rows worked, so this is not the full explanation.</td><td><span class="tag mid">Open</span></td></tr>
-<tr><td>A newer iPhone or iOS version</td><td>The problem depends on iOS behaviour. The client's iOS version is unknown.</td><td><span class="tag mid">Unknown</span></td></tr>
+<tr><td>A newer iPhone or iOS version</td><td>12 November: the freeze existed on iOS 26, and production users on iOS 27.2 show no more signs of trouble than users on older versions. The client's iPhone model and iOS version are still unknown.</td><td><span class="tag good">Unlikely as a whole</span></td></tr>
 <tr><td>A heavier page on each pick</td><td>On the real iPhone the page sometimes took up to 0.3 seconds to react after a pick. This was not linked to the freeze: working and frozen picks looked the same.</td><td><span class="tag mid">Open</span></td></tr>
 <tr><td>Changes to the search box itself</td><td>Since 11 August, the only changes to it were usage logging.</td><td><span class="tag good">Unlikely</span></td></tr>
 </table></div>
