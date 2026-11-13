@@ -38,6 +38,10 @@ figure{margin:1.2em 0}
 .split{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:20px;align-items:start}
 .split img{width:100%;height:auto;border:1px solid var(--line);border-radius:12px;display:block}
 figcaption{font-size:.84rem;color:var(--muted);margin-top:6px}
+.key{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:6px;padding:12px 16px;margin:1.2em 0}
+.key p,.key ol{margin:.4em 0}
+.key .lead{font-size:1.05rem;font-weight:700}
+.key.decide{border-left-color:var(--warn);background:var(--warnbg)}
 details{margin:1em 0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
 summary{cursor:pointer;font-weight:600}
 @media (max-width:560px){.split{grid-template-columns:1fr}.split img{max-width:240px}h1{font-size:1.55rem}}
@@ -45,11 +49,11 @@ summary{cursor:pointer;font-weight:600}
 </head>
 <body>
 <main>
-<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026 · updated 12 November 2026</p>
+<p class="meta">Investigation report · Ticket z94amct34x · 6 November 2026 · updated 13 November 2026</p>
 <h1>Card search: typing stops after picking a card</h1>
 <p>Why the search box stops accepting input on iPhone, whether it can be improved, and how to test it.</p>
 
-<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. On 11 November one fix option (option 1) was tried on a real iPhone using a local test build that was never released. See <a href="#nov11">11 November: real iPhone results</a>. On 12 November we checked whether the recent iOS update is to blame: <a href="#nov12">English</a> · <a href="#nov12-ja">日本語</a>.</div>
+<div class="notice"><strong>Investigation only.</strong> No product code was changed and nothing was deployed. On 11 November one fix option (option 1) was tried on a real iPhone using a local test build that was never released. See <a href="#nov11">11 November: real iPhone results</a>. On 12 November we checked whether the recent iOS update is to blame: <a href="#nov12">English</a> · <a href="#nov12-ja">日本語</a>. <strong>New, 13 November:</strong> iOS itself or the iOS update, both answers side by side: <a href="#nov13">English</a> · <a href="#nov13-ja">日本語</a>.</div>
 
 <div class="answers">
   <div class="answer"><b class="q">Why does input stop?</b><p><span class="tag good">Confirmed</span> After a card is picked, the box still looks active, but the iPhone keyboard is no longer connected to it. Keys are pressed and nothing arrives. We reproduced this in Apple's iOS simulator and, on 11 November, on a real iPhone 13. QA also reproduced it on production the same day.</p></div>
@@ -57,6 +61,106 @@ summary{cursor:pointer;font-weight:600}
   <div class="answer"><b class="q">Why does it feel worse?</b><p><span class="tag mid">Partly explained</span> Production now runs the iPhone version of the search box (confirmed 11 November). It freezes within the first one or two picks in most of our tries. The card search code itself has barely changed since August.</p></div>
   <div class="answer"><b class="q">Can it be improved?</b><p><span class="tag badge">Only with a trade-off</span> The last untested option failed on a real iPhone on 11 November. The only two approaches that ever stopped the freeze are the ones the client rejected earlier. This is now a choice between trade-offs, not a technical fix.</p></div>
 </div>
+
+<h2 id="nov13">13 November: a long-standing iOS limitation, not an iOS update</h2>
+<p class="meta">English · <a href="#nov13-ja">日本語はこちら</a></p>
+
+<div class="key">
+<p class="lead">In short: the cause is a long-standing limitation in how iOS handles Japanese typing, not a recent iOS update.</p>
+<p>The 12 November section and this one <strong>do not contradict each other</strong>. 12 November answered whether an iOS <em>update</em> is to blame. This section explains <em>why</em> the freeze happens. Neither the findings nor the code have changed. The card search on production has not changed since 30 September.</p>
+</div>
+
+<div class="scroll"><table>
+<tr><th></th><th>The cause?</th><th>Why</th></tr>
+<tr><td><strong>iOS updates</strong> (27.1, 27.2)</td><td><span class="tag good">No</span></td><td>The freeze already happened on iOS 26 (July), before iOS 27 was released. iOS 27.2 users are not worse off.</td></tr>
+<tr><td><strong>How iOS handles Japanese typing</strong> (long-standing)</td><td><span class="tag badge">Yes</span></td><td>The current search box behaviour conflicts with this limitation. Android and PC do not freeze.</td></tr>
+</table></div>
+
+<h3>What we have confirmed</h3>
+<ul>
+<li><strong>The freeze has existed since iOS 26.</strong> The first production report came on 31 July ("input stops from the 5th card").</li>
+<li><strong>It happens on every iOS version we tested:</strong> iOS 26, iOS 27.0, and a real iPhone on iOS 27 (11 November).</li>
+<li><strong>iOS 27.2 users are not worse off</strong> than users on older versions. The data is from production, 29 October to 12 November, about 173,000 card picks on iPhone.</li>
+<li><strong>Android and PC do not have this freeze.</strong></li>
+</ul>
+
+<h3>Why it happens</h3>
+<ul>
+<li>Since 1 July, at the client's request, <strong>the keyboard stays open after a card is picked</strong>. To do this, our code moves the cursor to a hidden box and back.</li>
+<li>Picking a card clears the box <strong>while iOS is still holding an unconfirmed Japanese word</strong>. Sometimes the keyboard's connection breaks: the keyboard is still showing, but nothing typed goes in.</li>
+<li><strong>On iOS, only a real tap from the user can reconnect the keyboard. Code cannot.</strong> This is how iOS generally behaves, not something new in a particular update. Every code-based fix has been tried and failed, most recently on a real iPhone on 11 November.</li>
+</ul>
+
+<h3>Why does it feel more frequent?</h3>
+<ul>
+<li>The freeze has always been random. On the same iPhone with the same steps, it stopped after pick 1, 2 or 8.</li>
+<li>Recent tests show <strong>the freeze tends to appear earlier</strong> (picks 1 to 3) than in the July report ("from the 5th card").</li>
+<li><strong>We cannot yet say why.</strong> Current production data shows no increase, but it cannot count freezes directly. Finding out needs a small freeze log, which is prepared and waiting for approval.</li>
+</ul>
+
+<div class="key decide">
+<p class="lead">What needs to be decided</p>
+<p>Technically, the keyboard cannot both stay open and leave the box empty after a Japanese pick. The client needs to choose one:</p>
+<ol>
+<li><strong>Keep the current behaviour.</strong> The keyboard stays open. If typing stops, tap the search box again.</li>
+<li><strong>Close the keyboard after each pick</strong> (option 2). No freeze, but the keyboard has to be reopened for every card.</li>
+<li><strong>Keep the half-typed text in the box after a pick</strong> (option 3). No freeze, but the user has to delete the text.</li>
+<li><strong>Build our own on-screen keyboard</strong> (option 6). A large piece of work, and a different typing experience.</li>
+</ol>
+<p>Options 2 and 3 were rejected before (1 July and 5 August), before it was known that the freeze can happen on the very first card. They may be worth asking about again.</p>
+</div>
+<p class="meta">Direct testing covered iOS 26 and 27 only. iOS 18 and older have not been tested.</p>
+
+<section lang="ja">
+<h2 id="nov13-ja">11月13日：原因はiOSアップデートではなく、以前からあるiOSの制約</h2>
+<p class="meta">日本語 · <a href="#nov13">English</a></p>
+
+<div class="key">
+<p class="lead">要点：原因は以前からあるiOSの日本語入力の制約であり、最近のiOSアップデートではありません。</p>
+<p>11月12日のご報告と本報告は<strong>矛盾していません</strong>。11月12日は「iOSの<em>アップデート</em>が原因か」、本報告は「<em>なぜ</em>フリーズが起きるのか」についてのご説明です。調査結果にもプログラムにも変更はありません。本番のカード検索は9月30日以降変更していません。</p>
+</div>
+
+<div class="scroll"><table>
+<tr><th></th><th>原因か</th><th>理由</th></tr>
+<tr><td><strong>iOSアップデート</strong>（27.1・27.2）</td><td><span class="tag good">いいえ</span></td><td>iOS 27の公開前、iOS 26の頃（7月）からすでに発生しています。iOS 27.2の利用者が悪化している傾向もありません。</td></tr>
+<tr><td><strong>iOSの日本語入力の扱い</strong>（以前からの制約）</td><td><span class="tag badge">はい</span></td><td>現在の検索欄の仕組みがこの制約とぶつかっています。AndroidやPCではフリーズは起きません。</td></tr>
+</table></div>
+
+<h3>確認できていること</h3>
+<ul>
+<li><strong>フリーズはiOS 26の頃から発生しています。</strong> 本番環境での最初の報告は7月31日（「5枚目から入力が止まる」）です。</li>
+<li><strong>テストしたすべてのiOSバージョンで発生しています。</strong> iOS 26、iOS 27.0、iOS 27の実機iPhone（11月11日）で確認しました。</li>
+<li><strong>iOS 27.2の利用者が、古いバージョンの利用者より悪い結果になってはいません。</strong> 10月29日〜11月12日の本番データ（iPhoneのカード選択 約173,000件）に基づいています。</li>
+<li><strong>AndroidとPCではこのフリーズは起きません。</strong></li>
+</ul>
+
+<h3>なぜ起きるのか</h3>
+<ul>
+<li>7月1日以降、クライアントのご要望により<strong>カード選択後もキーボードを開いたままにしています</strong>。そのために、カーソルを一度見えない入力欄に移してから検索欄に戻しています。</li>
+<li>カードを選ぶと検索欄が空になりますが、<strong>その時点でiOSはまだ確定前の日本語を保持しています</strong>。このとき、キーボードと検索欄のつながりが切れることがあります。キーボードは表示されたままですが、入力が反映されません。</li>
+<li><strong>iOSでは、キーボードのつながりを戻せるのは利用者が実際にタップしたときだけで、プログラムからは戻せません。</strong> これは特定のアップデートで生じたものではなく、iOS全般の動作です。プログラムによる修正方法はすべて試しましたが、いずれも解決しませんでした。直近では11月11日に実機iPhoneで確認しています。</li>
+</ul>
+
+<h3>なぜ頻度が増えたように感じるのか</h3>
+<ul>
+<li>このフリーズは以前から不規則に起きています。同じiPhone・同じ手順でも、1枚目・2枚目・8枚目と止まる位置が異なりました。</li>
+<li>最近のテストでは、7月のご報告（「5枚目から」）に比べて、<strong>より早い段階（1〜3枚目）で起きる傾向</strong>が見られます。</li>
+<li><strong>この変化の原因はまだ特定できていません。</strong> 現在の本番データでは増加は見られませんが、フリーズを直接数えることはできません。確認するには、フリーズを記録する小さな計測の追加が必要です（準備済み、ご承認待ち）。</li>
+</ul>
+
+<div class="key decide">
+<p class="lead">ご判断いただきたいこと</p>
+<p>日本語入力でカードを選んだ後に「キーボードを開いたまま」と「検索欄を空にする」を両立することは、技術的にできません。以下のいずれかをお選びください。</p>
+<ol>
+<li><strong>現状のまま。</strong> キーボードは開いたままです。入力が止まったら検索欄をタップし直します。</li>
+<li><strong>カード選択ごとにキーボードを閉じる</strong>（案2）。フリーズは起きませんが、カードごとにキーボードを開き直す必要があります。</li>
+<li><strong>入力途中の文字をカード選択後も検索欄に残す</strong>（案3）。フリーズは起きませんが、文字を自分で消す必要があります。</li>
+<li><strong>独自の画面キーボードを作る</strong>（案6）。大規模な作業となり、入力の使い勝手も変わります。</li>
+</ol>
+<p>案2と案3は以前（7月1日・8月5日）見送りとなりましたが、1枚目から起こり得ると分かる前のご判断でした。改めてご検討いただく価値があるかもしれません。</p>
+</div>
+<p class="meta">直接テストしたのはiOS 26と27のみです。iOS 18以前は未検証です。</p>
+</section>
 
 <h2 id="nov12">12 November: is the iOS update to blame, and is it really more frequent?</h2>
 <p class="meta">English · <a href="#nov12-ja">日本語はこちら</a></p>
